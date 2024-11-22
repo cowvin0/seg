@@ -43,8 +43,8 @@ app.layout = html.Div([
                 for col in numeric_columns
             ],
             value='idade'
-        )
-    ], style={'width': '48%', 'display': 'inline-block'}),
+            )
+        ], style={'width': '48%', 'display': 'inline-block'}),
     html.Div([
         dcc.Dropdown(
             id='y-axis-dropdown',
@@ -53,8 +53,8 @@ app.layout = html.Div([
                 for col in numeric_columns
             ],
             value='renda_mensal'
-        )
-    ], style={'width': '48%', 'display': 'inline-block'}),
+            )
+        ], style={'width': '48%', 'display': 'inline-block'}),
     dcc.Graph(id='scatter-plot'),
     dcc.Graph(id='bar-plot'),
     html.Div([
@@ -65,10 +65,11 @@ app.layout = html.Div([
                 for col in numeric_columns
             ],
             value=numeric_columns[0]
-        )
-    ], style={'width': '48%', 'display': 'inline-block'}),
+            )
+        ], style={'width': '48%', 'display': 'inline-block'}
+    ),
     dcc.Graph(id='box-plot')
-])
+    ])
 
 
 @app.callback(
@@ -95,6 +96,7 @@ def update_scatter_plot(x_col, y_col):
     Output('bar-plot', 'figure'),
     Input('bar-plot', 'id')
 )
+@cache.memoize(timeout=60)
 def update_bar_plot(_):
     proportion_df = df.groupby(['cod_coop', 'Grupos']).size().reset_index(name='counts')
     total_counts = proportion_df.groupby('cod_coop')['counts'].transform('sum')
@@ -116,6 +118,7 @@ def update_bar_plot(_):
     Output('box-plot', 'figure'),
     Input('box-plot-dropdown', 'value')
 )
+@cache.memoize(timeout=60)
 def update_box_plot(selected_col):
     fig = px.box(
         df,
