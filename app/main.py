@@ -8,14 +8,14 @@ import plotly.express as px
 from flask_caching import Cache
 
 df = pd.read_csv(
-    'relacionamento_clusters.csv',
+    'relacionamento_clusters1.csv',
     dtype={
         'cod_carteira': str,
         'cod_coop': str
         }
     )\
-    .sort_values('Grupos')\
-    .astype({'Grupos': str})
+    .sort_values('Grupos2')\
+    .astype({'Grupos2': str})
 
 numeric_columns = df.select_dtypes(include='number').columns
 
@@ -83,7 +83,7 @@ def update_scatter_plot(x_col, y_col):
         df,
         x=x_col,
         y=y_col,
-        color='Grupos',
+        color='Grupos2',
         opacity=.7,
         labels={
             x_col: x_col,
@@ -98,7 +98,7 @@ def update_scatter_plot(x_col, y_col):
 )
 @cache.memoize(timeout=60)
 def update_bar_plot(_):
-    proportion_df = df.groupby(['cod_coop', 'Grupos']).size().reset_index(name='counts')
+    proportion_df = df.groupby(['cod_coop', 'Grupos2']).size().reset_index(name='counts')
     total_counts = proportion_df.groupby('cod_coop')['counts'].transform('sum')
     proportion_df['proportion'] = proportion_df['counts'] / total_counts
 
@@ -106,7 +106,7 @@ def update_bar_plot(_):
         proportion_df,
         x='cod_coop',
         y='proportion',
-        color='Grupos',
+        color='Grupos2',
         labels={
             'proportion': 'Proporção',
             'cod_coop': 'Código Coop'
@@ -122,7 +122,7 @@ def update_bar_plot(_):
 def update_box_plot(selected_col):
     fig = px.box(
         df,
-        color='Grupos',
+        color='Grupos2',
         y=selected_col,
         labels={
             selected_col: selected_col
