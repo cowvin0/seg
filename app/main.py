@@ -11,11 +11,45 @@ df = pd.read_csv(
     'relacionamento_clusters.csv',
     dtype={
         'cod_carteira': str,
-        'cod_coop': str
+        'cod_coop': str,
+        'cad_pix': str,
+        'cod_central': str,
+        'ano_mes': str,
+        'num_conta_principal': str,
+        'cod_ua': str,
+        'num_cpf_cnpj': str,
+        'cod_cnae': str
         }
     )\
     .sort_values('Grupos')\
     .astype({'Grupos': str})
+
+df = df\
+    .astype(
+        {
+            col: str for col in
+            df.columns[df.columns.str.startswith('prod_')].tolist() +
+            df.columns[df.columns.str.startswith('flg_')].tolist() +
+            df.columns[df.columns.str.contains('fone')].tolist() +
+            df.columns[df.columns.str.contains('possui')].tolist() +
+            df.columns[df.columns.str.startswith('mobi_')].tolist() +
+            df.columns[df.columns.str.startswith('digital_')].tolist() +
+            df.columns[df.columns.str.startswith('ib_')].tolist()
+        }
+    )
+
+df_grupos = df\
+    .loc[:, ['Grupos'] +
+         df.columns[df.columns.str.startswith('prod_')].tolist()
+    ]\
+    .set_index('Grupos')\
+    .stack()\
+    .reset_index(name='possui')\
+    .astype({'possui': int})\
+    .rename(columns={'level_1': 'produto'})\
+    .groupby(['Grupos', 'produto'])\
+    .possui.sum()\
+    .reset_index(name='total_produto')
 
 numeric_columns = df.select_dtypes(include='number').columns
 
@@ -68,7 +102,19 @@ app.layout = html.Div([
             )
         ], style={'width': '48%', 'display': 'inline-block'}
     ),
-    dcc.Graph(id='box-plot')
+    dcc.Graph(id='box-plot'),
+    html.Div([
+        dcc.Dropdown(
+            id='group-dropdown',
+            options=[
+                {'label': f'Grupo {grupo}', 'value': grupo}
+                for grupo in df_grupos['Grupos'].unique()
+            ],
+            value=df_grupos['Grupos'].unique().tolist(),
+            multi=True
+        )
+    ], style={'width': '48%', 'display': 'inline-block'}),
+    dcc.Graph(id='total-products-bar-plot')
     ])
 
 
@@ -127,6 +173,27 @@ def update_box_plot(selected_col):
         labels={
             selected_col: selected_col
         }
+    )
+    return fig
+
+@app.callback(
+    Output('total-products-bar-plot', 'figure'),
+    [Input('total-products-bar-plot', 'id'),
+     Input('group-dropdown', 'value')]
+)
+@cache.memoize(timeout=60)
+def update_total_products_bar_plot(_, selected_groups):
+    filtered_df = df_grupos[df_grupos['Grupos'].isin(selected_groups)]
+    fig = px.bar(
+        filtered_df,
+        x='Grupos',
+        y='total_produto',
+        color='produto',
+        labels={
+            'total_produto': 'Total de Produtos',
+            'Grupos': 'Grupos'
+        },
+        title='Total de Produtos por Grupo'
     )
     return fig
 
