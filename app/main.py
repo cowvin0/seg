@@ -1,15 +1,17 @@
 import pandas as pd
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output
 import plotly.express as px
+
+from dash_bootstrap_components._components.Container import Container
+from dash import dcc, html, Input, Output, State
 from flask_caching import Cache
 
 df = pd.read_csv(
     'relacionamento_clusters.csv',
     dtype={
+        'desc_cnae': str,
+        'cod_cnae': str,
         'cod_carteira': str,
         'cod_coop': str,
         'cad_pix': str,
@@ -18,7 +20,6 @@ df = pd.read_csv(
         'num_conta_principal': str,
         'cod_ua': str,
         'num_cpf_cnpj': str,
-        'cod_cnae': str
         }
     )\
     .sort_values('Grupos')\
@@ -56,7 +57,7 @@ numeric_columns = df.select_dtypes(include='number').columns
 app = dash.Dash(
     __name__,
     external_stylesheets=[
-        dbc.themes.SPACELAB
+        dbc.themes.COSMO
     ],
     requests_pathname_prefix='/'
 )
@@ -67,6 +68,50 @@ cache = Cache(
         'CACHE_TYPE': 'simple'
         }
     )
+
+PLOTLY_LOGO = "https://images.plot.ly/logo/new-branding/plotly-logomark.png"
+
+search_bar = dbc.Row(
+    [
+        dbc.Col(dbc.Input(type="search", placeholder="Search")),
+        dbc.Col(
+            dbc.Button(
+                "Search", color="primary", className="ms-2", n_clicks=0
+            ),
+            width="auto",
+        ),
+    ],
+    className="g-0 ms-auto flex-nowrap mt-3 mt-md-0",
+    align="center",
+)
+
+navbar = dbc.Navbar(
+    dbc.Container(
+        [
+            html.A(
+                dbc.Row(
+                    [
+                        dbc.Col(html.Img(src=PLOTLY_LOGO, height="30px"))#,
+                        #dbc.Col(dbc.NavbarBrand("Navbar", className="ms-2")),
+                    ],
+                    align="center",
+                    className="g-0",
+                ),
+                href="https://www.sicredi.com.br",
+                style={"textDecoration": "none"},
+            ),
+            dbc.NavbarToggler(id="navbar-toggler", n_clicks=0)#,
+            #dbc.Collapse(
+            #    search_bar,
+            #    id="navbar-collapse",
+            #    is_open=False,
+            #    navbar=True,
+            #),
+        ]
+    ),
+    color="dark",
+    dark=True,
+)
 
 app.layout = html.Div([
     html.Div([
@@ -117,6 +162,8 @@ app.layout = html.Div([
     dcc.Graph(id='total-products-bar-plot')
     ])
 
+app.layout = [navbar, app.layout]
+
 
 @app.callback(
     Output('scatter-plot', 'figure'),
@@ -153,6 +200,7 @@ def update_bar_plot(_):
         x='cod_coop',
         y='proportion',
         color='Grupos',
+        barmode='group',
         labels={
             'proportion': 'Proporção',
             'cod_coop': 'Código Coop'
@@ -196,6 +244,16 @@ def update_total_products_bar_plot(_, selected_groups):
         title='Total de Produtos por Grupo'
     )
     return fig
+
+@app.callback(
+    Output("navbar-collapse", "is_open"),
+    [Input("navbar-toggler", "n_clicks")],
+    [State("navbar-collapse", "is_open")],
+)
+def toggle_navbar_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
 if __name__ == "__main__":
     app.run_server(debug=True)
