@@ -89,10 +89,10 @@ layout = html.Div(
             }
         )
     ],
-    style={
-        'width': '50%',
-        'margin': 'auto'
-    }
+    #style={
+    #    'width': '50%',
+    #    'margin': 'auto'
+    #}
 )
 
 #layout = html.Div([
