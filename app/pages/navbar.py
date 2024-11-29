@@ -29,10 +29,6 @@ def navbar():
                                 active='exact'
                             ) for page in dash.page_registry.values()
                         ],
-                        #[
-                        #    dbc.NavLink("Sobre", href="/", active="exact"),
-                        #    dbc.NavLink("Conheça seus associados", href="/nova-pagina", active="exact"),
-                        #],
                         className="ms-auto",
                         navbar=True,
                     ),
