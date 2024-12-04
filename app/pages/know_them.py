@@ -19,10 +19,20 @@ df = pd.read_csv(
         'num_conta_principal': str,
         'cod_ua': str,
         'num_cpf_cnpj': str,
+        'Grupos': str
         }
     )\
     .sort_values('Grupos')\
-    .astype({'Grupos': str})
+    .astype({'Grupos': str})\
+    .assign(
+        tempo_assoc=lambda x: x.tempo_assoc / 365.25,
+        Grupos=lambda x: x.Grupos.replace(
+            {
+                "9": "3",
+                "8": "7"
+            }
+        )
+    )
 
 df = df\
     .astype(
@@ -58,56 +68,6 @@ dash.register_page(
     name='Perfil dos associados',
     path='/associados',
     )
-
-#layout = html.Div(
-#    children=[
-#        html.H2(
-#            "Conheça seus associados",
-#            style={
-#                'fontWeight': 'bold',
-#                'marginBottom': '10px',
-#                'fontFamily': 'Georgia, serif',
-#                'marginTop': '20px',
-#                'width': '50%',
-#                'margin': 'auto'
-#            }
-#        ),
-#        html.Br(),
-#        html.P(
-#            "Conhecer o associado é crucial para que uma cooperativa de crédito ofereça "
-#            "produtos e serviços alinhados às suas necessidades. Isso permite personalizar "
-#            "ofertas, aumentar a satisfação e fidelização, reduzir riscos e desenvolver novos"
-#            "produtos relevantes. Além disso, facilita uma comunicação eficaz, garantindo um "
-#            "relacionamento benéfico e sustentável entre a cooperativa e seus membros.",
-#            style={
-#                'textAlign': 'justify',
-#                'textIndent': '0px',
-#                'marginTop': '10px',
-#                'marginLeft': '0px',
-#                'fontFamily': 'Georgia, serif',
-#                'width': '50%',
-#                'margin': 'auto'
-#            }
-#        ),
-#        html.Br(),
-#        html.P(
-#            "Para isso...",
-#            style={
-#                'textAlign': 'justify',
-#                'textIndent': '0px',
-#                'marginTop': '10px',
-#                'marginLeft': '0px',
-#                'fontFamily': 'Georgia, serif',
-#                'width': '50%',
-#                'margin': 'auto'
-#            }
-#        ),
-#    ],
-#    #style={
-#    #    'width': '50%',
-#    #    'margin': 'auto'
-#    #}
-#)
 
 layout = html.Div([
     html.Div([
@@ -227,6 +187,7 @@ def update_total_products_bar_plot(_, selected_groups):
         x='Grupos',
         y='total_produto',
         color='produto',
+        barmode='group',
         labels={
             'total_produto': 'Total de Produtos',
             'Grupos': 'Grupos'
