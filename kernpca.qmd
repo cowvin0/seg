@@ -1,0 +1,138 @@
+---
+title: pca
+---
+
+```{r}
+library(klaR)
+library(pROC)
+library(caret)
+library(CCA)
+library(rsample)
+library(plotly)
+library(factoextra)
+library(ggfortify)
+library(tidyverse)
+df <- read_csv("cluster_personas_corrigido.csv")
+df[is.na(df$`Renda corrigida`), ]$`Renda corrigida` <- c(
+	4792.21, 3000,
+	5424, 2360)
+```
+
+
+## pca
+
+```{r}
+df_geral <- df |>
+	select(
+		isa,
+		#sld_previdencia,
+        #sld_inad_ca_0,
+		investimento_total,
+        tempo_assoc, score_principalidade,
+        starts_with('sld_seg'), starts_with('sld_cred'),
+		-c(
+			sld_seg_rural, sld_cred_rural, sld_seg_out_familias,
+			sld_cred_coobrigacoes, sld_cred_direcionados,
+			sld_seg_automovel, sld_seg_patrimonial,
+			sld_seg_vida, sld_seg_residencial
+		),
+    )
+
+pca_result <- prcomp(df_geral, scale. = TRUE)
+
+pc_data <- as.data.frame(pca_result$x)
+pc_data$personas <- df$Personalizar
+```
+
+
+```{r}
+fviz_eig(
+  pca_result,
+  addlabels = TRUE,
+  barfill = "#002951"
+  ) +
+  labs(
+    y = "Porcentagem da variância explicada",
+    x = "Componentes",
+    title = ""
+    )
+```
+
+
+```{r}
+fviz_cos2(
+  pca_result,
+  choice = "var",
+  axes = 1:2,
+  fill = "#002951"
+  ) +
+  labs(
+    y = "Representação",
+    title = ""
+    )
+```
+
+```{r}
+autoplot(
+  pca_result,
+  data = df,
+  col = "#444444",
+  label.colour = "#002951",
+  colour = "Personalizar",
+  alpha=.6,
+  label = FALSE,
+  label.size = 2,
+  loadings = TRUE,
+  loadings.colour = "#777777",
+  loadings.label = TRUE,
+  loadings.label.colour = "black",
+  loadings.label.size = 4
+  ) +
+  scale_color_viridis_d() +
+  theme_bw()
+```
+
+## lda
+
+```{r}
+splits <- initial_split(df)
+train <- training(splits)
+test <- testing(splits)
+```
+
+```{r}
+colnames(train) <- make.names(colnames(train))
+colnames(test) <- make.names(colnames(test))
+linear <- lda(
+  Personalizar ~ isa + investimento_total + tempo_assoc + score_principalidade + sld_seg_prestamista + sld_cred_comercial + sld_cred_scr_2m,
+  test)
+
+pred_l <- predict(linear, test)
+cm1 <- confusionMatrix(
+  as.factor(test$Personalizar), pred_l$class
+  )
+cm1$table
+```
+
+```{r}
+roc_obj_l <- roc(as.factor(test$Personalizar), pred_l$posterior[, 1])
+auc(roc_obj_l)
+
+plot(roc_obj_l)
+```
+
+```{r}
+partimat(as.factor(Personalizar) ~ isa + investimento_total + tempo_assoc + score_principalidade + sld_seg_prestamista + sld_cred_comercial + sld_cred_scr_2m, data = test, method = "lda"#,
+         #image.colors = c("#1199ff", "#cccccc")
+         )
+```
+
+## quadratico
+
+```{r}
+quadratico <- qda(as.factor(Personalizar) ~ isa + investimento_total + tempo_assoc + score_principalidade + sld_seg_prestamista + sld_cred_comercial + sld_cred_scr_2m, train)
+
+pred_q <- predict(quadratico, test)
+cm2 <- confusionMatrix(test$Sex, pred_q$class)
+cm2$table
+```
