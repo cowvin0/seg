@@ -1,0 +1,165 @@
+---
+format: pdf
+number-sections: true
+indent: true
+documentclass: scrreprt
+whitespace: small
+lang: pt-br
+bibliography: includes/bib.bib
+csl: includes/ufpe-abnt.csl
+toc: true
+title: Análise de Personas da Central - NE
+author: Setor...
+date: today
+date-format: "MMMM, YYYY"
+fontsize: 12pt
+interlinespace: 1.5pt
+fig-cap-location: bottom
+warning: false
+echo: false
+include-in-header:
+  - text: |
+      \usepackage[shortlabels]{enumitem}
+      \usepackage{booktabs}
+      \usepackage{ragged2e}
+      \usepackage{pdflscape}
+      \newcommand{\blandscape}{\begin{landscape}}
+      \newcommand{\elandscape}{\end{landscape}}
+---
+
+```{r}
+library(klaR)
+library(pROC)
+library(caret)
+library(CCA)
+library(rsample)
+library(plotly)
+library(factoextra)
+library(ggfortify)
+library(tidyverse)
+df <- read_csv("cluster_personas_corrigido.csv") |>
+	mutate(cod_coop = as.character(cod_coop)) |>
+	rename(renda_corrigida = `Renda corrigida`)
+df[is.na(df$renda_corrigida), ]$renda_corrigida <- c(
+	4792.21, 3000,
+	5424, 2360)
+```
+
+
+# Resultados
+
+## Análise de componentes principais (Geral)
+
+```{r}
+df_geral <- df |>
+	select(
+	sld_capital_social,
+    sld_inad_ca_0,
+	investimento_total,
+    starts_with('sld_seg'),
+	starts_with('sld_cred'),
+		-c(
+			sld_seg_rural, sld_cred_rural, sld_seg_out_familias,
+			sld_cred_coobrigacoes, sld_cred_direcionados,
+			sld_seg_automovel, sld_seg_patrimonial, sld_seg_vida, sld_seg_residencial, sld_seg_prestamista
+		),
+    )
+
+pca_result <- prcomp(df_geral, scale. = TRUE)
+
+pc_data <- as.data.frame(pca_result$x)
+pc_data$personas <- df$Personalizar
+```
+
+
+```{r}
+fviz_eig(
+  pca_result,
+  addlabels = TRUE,
+  barfill = "#002951"
+  ) +
+  labs(
+    y = "Porcentagem da variância explicada",
+    x = "Componentes",
+    title = ""
+    )
+```
+
+```{r}
+fviz_cos2(
+  pca_result,
+  choice = "var",
+  axes = 1:2,
+  fill = "#002951"
+  ) +
+  labs(
+    y = "Representação",
+    title = ""
+    )
+```
+
+```{r}
+autoplot(
+  pca_result,
+  data = df,
+  col = "#444444",
+  label.colour = "#002951",
+  colour = "Personalizar",
+  size = 5.5,
+  alpha = .7,
+  label = FALSE,
+  label.size = 2,
+  loadings = TRUE,
+  loadings.colour = "#777777",
+  loadings.label = TRUE,
+  loadings.label.colour = "black",
+  loadings.label.size = 4
+  ) +
+  theme_bw()
+```
+
+## Kmeans
+
+```{r}
+semente <- round(
+	aggregate(
+		df_geral,
+		by = list(cluster = df$Personalizar),
+		mean)[,-1], 2)
+
+km <- kmeans(
+	df_geral,
+	iter.max = 50000,
+	algorithm = "MacQueen")
+
+Biplot <- fviz_cluster(
+	list(
+		data = df_geral,
+		cluster = km$cluster,
+		show.cluster.cent = TRUE,
+		show_labels = TRUE
+	),
+	geom = c("point"),
+	ellipse.type = "euclid",
+	repel = FALSE,
+	legend = NULL) +
+  labs(title = "") +
+  theme_bw()
+```
+
+## Anova
+
+```{r}
+anova <- aov(
+	sld_inad_ca_0 + investimento_total + sld_cred_comercial + idade + renda_corrigida + mc_total ~ Personalizar,
+	df)
+
+#anova <- aov(
+#	renda_corrigida ~ Personalizar,
+#	df)
+plot(TukeyHSD(anova))
+```
+
+```{r}
+
+```
