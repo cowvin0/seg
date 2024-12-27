@@ -40,6 +40,24 @@ library(tidyverse)
 df <- read_csv("cluster_personas_corrigido.csv") |>
 	mutate(cod_coop = as.character(cod_coop)) |>
 	rename(renda_corrigida = `Renda corrigida`)
+df <- df |>
+	mutate(
+		Personalizar = case_when(
+			Personalizar == "NOVATA" ~ "INICIANTE",
+			Personalizar == "RESPONSÁVEL" ~ "DEDICADA",
+			Personalizar == "EFICIENTE" ~ "PRODUTIVA",
+			Personalizar == "PROMISSORA" ~ "ASPIRANTE",
+			Personalizar == "INDECISA" ~ "INSEGURA",
+			Personalizar == "ESTÁVEL" ~ "FIRME",
+			Personalizar == "OBSTINADA" ~ "DETERMINADA",
+			Personalizar == "CONSTANTE" ~ "REGULAR",
+			Personalizar == "LUTADORA" ~ "RESILIENTE",
+			Personalizar == "PACATA" ~ "SERENO",
+			Personalizar == "CONSOLIDADA" ~ "ESTABELECIDA",
+			Personalizar == "SINGELA" ~ "MODESTA",
+			TRUE ~ Personalizar
+		)
+	)
 df[is.na(df$renda_corrigida), ]$renda_corrigida <- c(
 	4792.21, 3000,
 	5424, 2360)
@@ -53,15 +71,16 @@ df[is.na(df$renda_corrigida), ]$renda_corrigida <- c(
 ```{r}
 df_geral <- df |>
 	select(
-	sld_capital_social,
+    sld_capital_social,
     sld_inad_ca_0,
-	investimento_total,
+    investimento_total,
     starts_with('sld_seg'),
-	starts_with('sld_cred'),
+    starts_with('sld_cred'),
 		-c(
 			sld_seg_rural, sld_cred_rural, sld_seg_out_familias,
 			sld_cred_coobrigacoes, sld_cred_direcionados,
-			sld_seg_automovel, sld_seg_patrimonial, sld_seg_vida, sld_seg_residencial, sld_seg_prestamista
+			sld_seg_automovel, sld_seg_patrimonial,
+      sld_seg_vida, sld_cred_scr_2m, sld_seg_prestamista
 		),
     )
 
@@ -100,22 +119,28 @@ fviz_cos2(
 
 ```{r}
 autoplot(
-  pca_result,
-  data = df,
-  col = "#444444",
-  label.colour = "#002951",
-  colour = "Personalizar",
-  size = 5.5,
-  alpha = .7,
-  label = FALSE,
-  label.size = 2,
-  loadings = TRUE,
-  loadings.colour = "#777777",
-  loadings.label = TRUE,
-  loadings.label.colour = "black",
-  loadings.label.size = 4
-  ) +
-  theme_bw()
+	pca_result,
+	data = df,
+	col = "#444444",
+	label.colour = "#002951",
+	colour = "Personalizar",
+	size = 5.5,
+	alpha = .4,
+	label = FALSE,
+	label.size = 2,
+	loadings = TRUE,
+	loadings.colour = "#777777",
+	loadings.label = TRUE,
+	loadings.label.colour = "black",
+	loadings.label.size = 4
+	) +
+	scale_color_manual(
+		values = c(
+			"CONSTANTE" = "red"
+		)
+	) +
+	#scale_color_viridis_d() +
+	theme_bw()
 ```
 
 ## Kmeans
